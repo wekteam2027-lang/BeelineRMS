@@ -1,0 +1,59 @@
+name: Build Website → APK
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Клонируем репозиторий
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. Ставим Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # 3. Ставим зависимости npm
+      - name: Install dependencies
+        run: npm install
+
+      # 4. Собираем сайт (если React/Vue)
+      - name: Build web app
+        run: npm run build  # если сайт простой HTML — этот шаг пропусти
+
+      # 5. Ставим Capacitor
+      - name: Install Capacitor
+        run: npm install @capacitor/core @capacitor/cli
+
+      # 6. Инициализируем Android-проект
+      - name: Initialize Capacitor
+        run: npx cap init BeelineRMS com.example.beelinerms --webDir build  # если build другая, поменяй
+
+      # 7. Добавляем Android
+      - name: Add Android platform
+        run: npx cap add android
+
+      # 8. Копируем сайт в Android
+      - name: Copy web assets
+        run: npx cap copy
+
+      # 9. Собираем APK
+      - name: Build APK
+        run: |
+          cd android
+          ./gradlew assembleRelease
+
+      # 10. Загружаем APK как артефакт
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: BeelineRMS.apk
+          path: android/app/build/outputs/apk/release/*.apk
